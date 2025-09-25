@@ -1,0 +1,111 @@
+Chapter 9: Real-World Java Development
+Building a CRUD Application: From Start to
+Finish
+Planning the Application
+The first step in building any software application is planning. For a CRUD
+application, we need to determine what data we will manage and how users
+will interact with it.
+For this bookstore application, we identified that books will be the main
+data entity. Each book will have fields for title, author, price, and quantity
+available. These translate directly into columns in the database table that
+will store book records.
+Next, we considered the basic functionality users need. At a minimum, they
+should be able to:
+View a list of all books
+Add a new book
+View/edit an individual book's details
+Delete a book
+These operations map to the standard CRUD operations - Read (view list),
+Create (add new), Update (edit), and Delete. Additional features like
+searching and sorting could be expanded on later.
+Finally, we thought about how this will be delivered. A web application
+using JSP/Servlets is a common way to build CRUD systems. Users will
+interact through web pages displayed in a browser. This allows accessing
+the application from anywhere without installing additional software.
+With the planning done, we had the foundation to start development.
+Setting Up the Development Environment
+For a Java web application, we need a server environment to run the
+application code and a persistence layer to store data. We chose Apache
+Tomcat as our server since it is a lightweight and popular open-source Java
+Servlet container. It was downloaded and configured onSetting Up the Development Environment
+For a Java web application, we need a server environment to run the
+application code and a persistence layer to store data. We chose Apache
+Tomcat as our server since it is a lightweight and popular open-source Java
+Servlet container. It was downloaded and configured on our development
+machines. For the database, H2 was selected as it is an in-memory SQL
+database ideal for development/testing. Its JDBC driver was also
+downloaded. To connect Tomcat and H2, we added the required JDBC
+libraries to Tomcat's classpath. This allows our Java code to communicate
+with the database. H2 has a built-in browser-based console to view and
+manipulate data. We used it to create the 'books' table with the four book
+fields as columns. This completed the basic infrastructure preparation.
+Creating the Model Layer
+Next, we implemented the model layer that represents our application's
+data. This included:
+1. Book entity class: A simple POJO mapping to the database table
+with fields and getter/setter methods
+2. DAO interfaces: Defined database access methods like
+findAll(), save(), update(), delete()
+3. DAO implementations: Contain JDBC code to execute CRUD
+SQL and return results
+The DAOs abstracted JDBC for cleaner code. Utility methods like
+connection opening/closing were also created.
+To summarize, the model layer focuses on managing the data and interacts
+with the database infrastructure behind a clean interface. Its role is to
+retrieve and persist Book objects.
+Building the View Layer
+JSP allows the creation of attractive and dynamic web pages simply. We
+designed the view layer to:
+1. Books. jsp - Display all books in a table with edit/delete linksBuilding the View Layer
+JSP allows the creation of attractive and dynamic web pages simply. We
+designed the view layer to:
+1. Books. jsp - Display all books in a table with edit/delete links
+2. and add books. jsp - Form to add a new book with submission
+to a servlet
+3. editBook.jsp - Pre-populate form with book details for updating
+4. message.jsp - Display status/errors returned from servlets
+Simple HTML constructs, JSP expressions to embed Java variables, and
+SQL tags to iterate over data allowed building these pages quickly.
+We followed best practices like separating presentation from logic, using
+consistent formatting/ styling, and keeping pages focused on a single task.
+The result is cleanly designed templated content for users to interact with.
+Implementing the Controller Layer
+Servlets act as controllers that bridge the view and model layers. We
+implemented:
+1. BookServlet - Handle HTTP requests, call DAO methods,
+forward to views
+2. AddBookServlet - Accept form data, save to database, show
+success/error
+3. EditBookServlet - Update existing book details from the form
+submit
+4. DeleteBookServlet - Remove a book record by id
+Servlets validate input, interact with the DAO layer as needed, and then
+dispatch to appropriate JSP views. Parameters are passed between requests
+using the HTTP session.
+Finally, utility classes were written for common tasks like request handling
+user input validation. They reduce redundant code across servlets.
+Integrated Testing
+Thorough testing ensures quality and prevents regressions. We covered:
+Model layer tests: Use JUnit to test DAO functionality
+independently of other layers
+Controller layer tests: Mock model interactions, validate servlet
+responses
+Integration tests: Mimic real usage with edge cases by making
+full HTTP requests
+Continuous integration using Jenkins automates running the full test suite
+on code changes. This lets developers focus on features while knowing
+existing logic is unchanged.
+The testing establishes trust in the application to handle real-world usage
+reliably as features are added over time.
+Putting it All Together
+To launch the finished application:
+1. Create war file packaging classes, JSPs, dependencies
+2. Deploy war to the Tomcat server
+3. Access the homepage and try all CRUD operations
+4. Integrate with continuous delivery using Jenkins
+5. Release version 1.0 of the bookstore app
+The completed project showcases applying core Java technologies end-toend. It demonstrates architecture best practices like separation of concerns,
+unit testing, and extensibility at each layer to create a robust application.
+The examples and explanations give readers practical knowledge to develop
+their own functional and maintainable CRUD systems using Java/JSP for
+real business needs, and learning objectives are fully covered
