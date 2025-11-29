@@ -61,3 +61,372 @@ public class RestApiDemoController {
         coffees.removeIf(c -> c.getId().equals(id));
     }
 }
+---------------------
+#!/bin/bash
+
+# Create main app folders
+mkdir -p ft_pattern_app/uploads
+mkdir -p ft_pattern_app/static
+mkdir -p ft_pattern_app/templates
+mkdir -p ft_pattern_app/utils
+
+# Create empty __init__.py for utils package
+touch ft_pattern_app/utils/__init__.py
+
+# Create Python files
+touch ft_pattern_app/app.py
+touch ft_pattern_app/config.py
+touch ft_pattern_app/requirements.txt
+touch ft_pattern_app/utils/file_handler.py
+touch ft_pattern_app/utils/data_processor.py
+touch ft_pattern_app/utils/plotter.py
+
+# Create HTML template
+touch ft_pattern_app/templates/index.html
+
+echo "Project folder structure created successfully!"
+
+
+CCCCCCCCCCCCCC
+
+import os
+
+UPLOAD_FOLDER = 'uploads'
+STATIC_FOLDER = os.path.join(os.path.dirname(__file__), 'static')
+ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+if not os.path.exists(STATIC_FOLDER):
+    os.makedirs(STATIC_FOLDER)
+
+
+CCCCCCCCCCCCCC
+import os
+from werkzeug.utils import secure_filename
+from config import UPLOAD_FOLDER, ALLOWED_EXTENSIONS
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_file(file):
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+    return filepath
+
+
+CCCCCCCCCCCCCC
+import pandas as pd
+
+class DataProcessor:
+    REQUIRED_COLS = {'Open', 'Low', 'Close', 'Date'}
+
+    @staticmethod
+    def validate_columns(df):
+        return DataProcessor.REQUIRED_COLS.issubset(df.columns)
+
+    @staticmethod
+    def get_recent_days(df, selected_date, num_days=18):
+        df['Date'] = pd.to_datetime(df['Date'])
+        selected_date = pd.to_datetime(selected_date)
+        df = df[df['Date'] <= selected_date].sort_values('Date', ascending=False).head(num_days)
+        df = df.sort_values('Date')  # Oldest to newest
+        return df
+
+CCCCCCCCCCCCCC
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from collections import defaultdict
+import os
+import pandas as pd
+from config import STATIC_FOLDER
+
+
+class Plotter:
+
+    # @staticmethod
+    # def plot_main_subplots(df):
+    #     weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+    #     df['Weekday'] = df['Date'].dt.day_name().str[:3]
+    #     from collections import defaultdict
+    #     grouped = defaultdict(list)
+    #     for _, row in df.iterrows():
+    #         grouped[row['Weekday']].append((row['Date'].strftime('%Y-%m-%d'), [row['Open'], row['Low'], row['Close']]))
+    #     color_palette = plt.cm.tab10.colors
+
+    #     # Make the figure much larger
+    #     fig, axes = plt.subplots(1, 5, figsize=(30, 8))  # Wider and taller
+
+    #     for idx, wd in enumerate(weekdays):
+    #         ax = axes[idx]
+    #         entries = grouped[wd]
+    #         for j, (date, values) in enumerate(entries):
+    #             color = color_palette[j % len(color_palette)]
+    #             ax.plot(
+    #                 ['Open', 'Low', 'Close'],
+    #                 values,
+    #                 marker='o',
+    #                 label=date,
+    #                 color=color,
+    #                 markersize=12,           # Larger markers
+    #                 linewidth=3              # Thicker lines
+    #             )
+    #             close_open_diff = values[2] - values[0]
+    #             ax.text(
+    #                 1.5,
+    #                 max(values) + 4,         # More space above line
+    #                 f'Close-Open: {close_open_diff:+.1f}',
+    #                 fontsize=16,             # Larger annotation
+    #                 color=color,
+    #                 ha='center',
+    #                 va='bottom',
+    #                 fontweight='bold'
+    #             )
+    #         ax.set_title(wd, fontsize=20, fontweight='bold')
+    #         ax.set_xlabel('Price Type', fontsize=16)
+    #         ax.legend(fontsize=12, title='Date')
+    #         ax.grid(True)
+    #         if idx == 0:
+    #             ax.set_ylabel('Price', fontsize=16)
+    #         ax.tick_params(axis='both', labelsize=14)  # Larger tick labels
+
+    #     plt.tight_layout()
+    #     main_plot_path = os.path.join(STATIC_FOLDER, 'main_plot.png')
+    #     plt.savefig(main_plot_path, dpi=150)  # Higher resolution
+    #     plt.close(fig)
+    #     return 'main_plot.png'
+    @staticmethod
+    def plot_main_subplots(df):
+        import matplotlib.colors as mcolors
+        weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+        df['Weekday'] = df['Date'].dt.day_name().str[:3]
+        df['Week'] = df['Date'].dt.isocalendar().week  # ISO week number
+
+        # Get all unique week numbers in order
+        unique_weeks = sorted(df['Week'].unique())
+        color_palette = list(mcolors.TABLEAU_COLORS.values())
+        while len(color_palette) < len(unique_weeks):
+            color_palette += color_palette  # Repeat if not enough colors
+        week_to_color = {week: color_palette[i % len(color_palette)] for i, week in enumerate(unique_weeks)}
+
+        # Group data by weekday
+        from collections import defaultdict
+        grouped = defaultdict(list)
+        for _, row in df.iterrows():
+            grouped[row['Weekday']].append((row['Date'].strftime('%Y-%m-%d'), row['Week'], [row['Open'], row['Low'], row['Close']]))
+
+        # Make the figure even larger
+        fig, axes = plt.subplots(1, 5, figsize=(40, 12))  # Wider and taller
+
+        for idx, wd in enumerate(weekdays):
+            ax = axes[idx]
+            entries = grouped[wd]
+            for j, (date, week, values) in enumerate(entries):
+                color = week_to_color[week]
+                ax.plot(
+                    ['Open', 'Low', 'Close'],
+                    values,
+                    marker='o',
+                    label=f"{date} (Week {week})",
+                    color=color,
+                    markersize=16,           # Larger markers
+                    linewidth=4              # Thicker lines
+                )
+                close_open_diff = values[2] - values[0]
+                # Stagger annotation positions to avoid overlap
+                y_offset = 8 + j * 6
+                ax.text(
+                    1.5,
+                    max(values) + y_offset,
+                    f'Close-Open: {close_open_diff:+.1f}',
+                    fontsize=20,
+                    color=color,
+                    ha='center',
+                    va='bottom',
+                    fontweight='bold'
+                )
+            ax.set_title(wd, fontsize=28, fontweight='bold')
+            ax.set_xlabel('Price Type', fontsize=22)
+            ax.legend(fontsize=18, title='Date')
+            ax.grid(True)
+            if idx == 0:
+                ax.set_ylabel('Price', fontsize=22)
+            ax.tick_params(axis='both', labelsize=18)  # Larger tick labels
+
+        plt.tight_layout()
+        main_plot_path = os.path.join(STATIC_FOLDER, 'main_plot.png')
+        plt.savefig(main_plot_path, dpi=200)  # Higher resolution
+        plt.close(fig)
+        return 'main_plot.png'
+
+
+    @staticmethod
+    def plot_overnight_bar(df):
+        overnight_table = []
+        df_sorted = df.sort_values('Date')
+        for i in range(1, len(df_sorted)):
+            prev_row = df_sorted.iloc[i-1]
+            curr_row = df_sorted.iloc[i]
+            prev_close = prev_row['Close']
+            curr_open = curr_row['Open']
+            overnight_change = curr_open - prev_close
+            overnight_table.append([curr_row['Date'].strftime('%Y-%m-%d'), curr_row['Weekday'], prev_close, curr_open, overnight_change])
+        overnight_df = pd.DataFrame(overnight_table, columns=['Date', 'Weekday', 'Prev Close', 'Today Open', 'Overnight Change'])
+        fig, ax = plt.subplots(figsize=(14, 4))
+        bars = ax.bar(overnight_df['Date'], overnight_df['Overnight Change'],
+                      color=['green' if x > 0 else 'red' for x in overnight_df['Overnight Change']], tick_label=overnight_df['Date'] 
+                      )
+        ax.set_title('Overnight Change (Today Open - Previous Close)', fontsize=14, fontweight='bold')
+        ax.set_ylabel('Change')
+        plt.xticks(rotation=45)
+        ax.grid(True)
+        plt.tight_layout()
+        overnight_bar_path = os.path.join(STATIC_FOLDER, 'overnight_bar.png')
+        plt.savefig(overnight_bar_path)
+        plt.close(fig)
+        return 'overnight_bar.png', overnight_df
+
+    @staticmethod
+    def plot_overnight_table(overnight_df):
+        fig, ax = plt.subplots(figsize=(14, 0.5 + 0.4 * len(overnight_df)))
+        ax.axis('off')
+        tbl = ax.table(cellText=overnight_df.values, colLabels=overnight_df.columns, loc='center', cellLoc='center')
+        tbl.auto_set_font_size(False)
+        tbl.set_fontsize(12)
+        tbl.auto_set_column_width(col=list(range(len(overnight_df.columns))))
+        plt.title('Overnight Change Table', fontsize=14, fontweight='bold')
+        plt.tight_layout()
+        overnight_table_path = os.path.join(STATIC_FOLDER, 'overnight_table.png')
+        plt.savefig(overnight_table_path)
+        plt.close(fig)
+        return 'overnight_table.png'
+
+CCCCCCCCCCCCCC
+from flask import Flask, render_template, request, send_from_directory
+import pandas as pd
+from config import UPLOAD_FOLDER, STATIC_FOLDER
+from utils.file_handler import allowed_file, save_file
+from utils.data_processor import DataProcessor
+from utils.plotter import Plotter
+import os
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    main_plot = overnight_bar = overnight_table = None
+    error = None
+    if request.method == 'POST':
+        if 'file' not in request.files or request.files['file'].filename == '':
+            error = 'No file selected.'
+        else:
+            file = request.files['file']
+            if not allowed_file(file.filename):
+                error = 'Invalid file type. Please upload an Excel file.'
+            else:
+                selected_date = request.form.get('selected_date')
+                if not selected_date:
+                    error = 'Please select a date.'
+                else:
+                    filepath = save_file(file)
+                    try:
+                        df = pd.read_excel(filepath)
+                        if not DataProcessor.validate_columns(df):
+                            error = 'Excel file must contain columns: Open, Low, Close, Date.'
+                        else:
+                            df_recent = DataProcessor.get_recent_days(df, selected_date, num_days=25)
+                            main_plot = Plotter.plot_main_subplots(df_recent)
+                            overnight_bar, overnight_df = Plotter.plot_overnight_bar(df_recent)
+                            overnight_table = Plotter.plot_overnight_table(overnight_df)
+                    except Exception as e:
+                        error = f'Error processing file: {e}'
+    return render_template('index.html', main_plot=main_plot, overnight_bar=overnight_bar, overnight_table=overnight_table, error=error)
+
+@app.route('/static/<filename>')
+def static_files(filename):
+    return send_from_directory(STATIC_FOLDER, filename)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+CCCCCCCCCCCCC
+Flask
+pandas
+matplotlib
+openpyxl
+
+CCCCCCCCCCCCC
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Movement Visualizer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 900px; margin: auto; }
+        .error { color: red; }
+        .plots img { max-width: 100%; margin-bottom: 30px; border: 1px solid #ccc; }
+        .upload-box {
+            border: 2px dashed #aaa;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+        }
+        .upload-box.dragover { background: #e0f7fa; }
+    </style>
+    <script>
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('upload-box').classList.add('dragover');
+        }
+        function handleDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('upload-box').classList.remove('dragover');
+        }
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('upload-box').classList.remove('dragover');
+            var files = e.dataTransfer.files;
+            document.getElementById('file-input').files = files;
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>Stock Movement Visualizer</h1>
+    <form method="post" enctype="multipart/form-data">
+        <div id="upload-box" class="upload-box"
+             ondragover="handleDragOver(event)"
+             ondragleave="handleDragLeave(event)"
+             ondrop="handleDrop(event)">
+            <input type="file" name="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="this.form.submit()">
+            <label for="file-input" style="cursor:pointer;">Drag & Drop Excel file here or click to select</label>
+        </div>
+        <label for="selected_date">Select Date:</label>
+        <input type="date" name="selected_date" id="selected_date" required>
+        <button type="submit">Submit</button>
+    </form>
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+    <div class="plots">
+        {% if main_plot %}
+            <h2>Main Subplots: Open, Low, Close</h2>
+            <img src="{{ url_for('static_files', filename=main_plot) }}" alt="Main Plot">
+        {% endif %}
+        {% if overnight_bar %}
+            <h2>Overnight Change Bar Chart</h2>
+            <img src="{{ url_for('static_files', filename=overnight_bar) }}" alt="Overnight Bar Chart">
+        {% endif %}
+        {% if overnight_table %}
+            <h2>Overnight Change Table</h2>
+            <img src="{{ url_for('static_files', filename=overnight_table) }}" alt="Overnight Table">
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>
+
